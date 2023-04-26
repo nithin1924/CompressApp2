@@ -8,7 +8,7 @@ namespace CompressApp2
     {
         static void Main(string[] args)
         {
-            int counter = 0;
+            int counter = 0, recordCount;
             //Console.WriteLine("Hello, World!");
             var connectionStringBuilder = new SqliteConnectionStringBuilder();
             connectionStringBuilder.DataSource = "./SqliteDB.db";
@@ -22,19 +22,28 @@ namespace CompressApp2
                 delTableCmd.CommandText = "DROP TABLE IF EXISTS table1";
                 delTableCmd.ExecuteNonQuery();
 
+                delTableCmd.CommandText = "DROP TABLE IF EXISTS table2";
+                delTableCmd.ExecuteNonQuery();
+
                 delTableCmd.CommandText = "DROP TABLE IF EXISTS mapTable";
                 delTableCmd.ExecuteNonQuery();
 
                 var createTableCmd = connection.CreateCommand();
                 createTableCmd.CommandText = "CREATE TABLE table1(name VARCHAR(50), id VARCHAR(50), phone VARCHAR(50), country VARCHAR(50))";
                 createTableCmd.ExecuteNonQuery();
+                createTableCmd.CommandText = "CREATE TABLE table2(name VARCHAR(50), id VARCHAR(50), phone VARCHAR(50), country VARCHAR(50))";
+                createTableCmd.ExecuteNonQuery();
                 createTableCmd.CommandText = "CREATE TABLE mapTable(key VARCHAR(50), value VARCHAR(50))";
                 createTableCmd.ExecuteNonQuery();
 
-                InsetToDB(connection, counter); // Insert employee data to DB
-                counter++;
-                InsetToDB(connection, counter); // Insert employee data to DB
-                counter++;
+                Console.WriteLine("Enter Number of Employee Records");
+                recordCount = Convert.ToInt32(Console.ReadLine());
+
+                for(int i = 0; i < recordCount; i++)
+                {
+                    InsetToDB(connection, counter); // Insert employee data to DB
+                    counter++;
+                }
                 ReadDB(connection);    // Read employee data from DB
 
             }
@@ -42,7 +51,7 @@ namespace CompressApp2
 
         static void InsetToDB(SqliteConnection connection, int counter)
         {
-            var Emp = TakeInput();
+            Employee Emp = TakeInput();
 
             string mapId = GetValue(connection, Emp.Id);
             if(mapId == "") 
@@ -80,10 +89,11 @@ namespace CompressApp2
 
         static void PrintEmployee(Employee emp)
         {
-            Console.WriteLine(emp.phone);
-            Console.WriteLine(emp.Id);
-            Console.WriteLine(emp.country);
-            Console.WriteLine(emp.Name);
+            Console.WriteLine("Phone :" + emp.phone);
+            Console.WriteLine("Id :" + emp.Id);
+            Console.WriteLine("country :" + emp.country);
+            Console.WriteLine("Name :" + emp.Name);
+            Console.WriteLine("");
         }
 
         static void ReadDB(SqliteConnection connection)
@@ -92,18 +102,24 @@ namespace CompressApp2
 
             //Read the newly inserted data:
             var selectCmd = connection.CreateCommand();
-            selectCmd.CommandText = "SELECT id FROM table1";
+            selectCmd.CommandText = "SELECT * FROM table1";
 
             using (var reader = selectCmd.ExecuteReader())
             {
                 while (reader.Read())
                 {
-                    var message = reader.GetString(0);
-                    Console.WriteLine(message);
+                    Employee.Name = reader.GetString(0);
+                    Employee.Id = reader.GetString(1);
+                    Employee.phone = reader.GetString(2);
+                    Employee.country = reader.GetString(3);
+
+                    Console.WriteLine("Before Decompression");
+                    PrintEmployee(Employee);
+                    Employee.Id = GetKeyFromValue(connection, Employee.Id);
+                    Console.WriteLine("After Decompression");
+                    PrintEmployee(Employee);
                 }
             }
-
-            PrintEmployee(Employee);
         }
 
         static string GetValue(SqliteConnection connection, string? key)
@@ -130,9 +146,18 @@ namespace CompressApp2
             return counter.ToString();
         }
 
-        static string GetKeyFromValue(SqliteConnection connection, string value)
+        static string GetKeyFromValue(SqliteConnection connection, string? value)
         {
             string key = "";
+            var selectCmd = connection.CreateCommand();
+            selectCmd.CommandText = "SELECT key FROM mapTable WHERE value = '" + value + "'";
+            using (var reader = selectCmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    key = reader.GetString(0);
+                }
+            }
             return key;
         }
     }
