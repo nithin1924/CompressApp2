@@ -6,9 +6,11 @@ namespace CompressApp2
 {
     internal class Program
     {
+        static int? count1 = 0, count2 = 0;
         static void Main(string[] args)
         {
             int counter = 0, recordCount;
+           
             //Console.WriteLine("Hello, World!");
             var connectionStringBuilder = new SqliteConnectionStringBuilder();
             connectionStringBuilder.DataSource = "./SqliteDB.db";
@@ -52,7 +54,6 @@ namespace CompressApp2
         static void InsetToDB(SqliteConnection connection, int counter)
         {
             Employee Emp = TakeInput();
-
             string mapId = GetValue(connection, Emp.Id);
             if(mapId == "") 
             {
@@ -84,6 +85,7 @@ namespace CompressApp2
             Console.WriteLine("Enter phone");
             employee.phone = Console.ReadLine();
             //Console.WriteLine("insideTakeInput" );
+            count1 += employee.Id?.Length + employee.Name?.Length + employee.country?.Length + employee.phone?.Length;
             return employee;
         }
 
@@ -115,11 +117,16 @@ namespace CompressApp2
 
                     Console.WriteLine("Before Decompression");
                     PrintEmployee(Employee);
+                    count2 += Employee.Id?.Length + Employee.Name?.Length + Employee.country?.Length + Employee.phone?.Length;
+
                     Employee.Id = GetKeyFromValue(connection, Employee.Id);
                     Console.WriteLine("After Decompression");
+
                     PrintEmployee(Employee);
                 }
             }
+            float cr = (float)(count1 - count2) / (float)count1;
+            Console.WriteLine("Compression Ratio = " + cr);
         }
 
         static string GetValue(SqliteConnection connection, string? key)
