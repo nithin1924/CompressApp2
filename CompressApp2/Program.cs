@@ -8,6 +8,7 @@ namespace CompressApp2
     {
         static void Main(string[] args)
         {
+            int counter = 0;
             //Console.WriteLine("Hello, World!");
             var connectionStringBuilder = new SqliteConnectionStringBuilder();
             connectionStringBuilder.DataSource = "./SqliteDB.db";
@@ -30,9 +31,35 @@ namespace CompressApp2
                 createTableCmd.CommandText = "CREATE TABLE mapTable(key VARCHAR(50), value VARCHAR(50))";
                 createTableCmd.ExecuteNonQuery();
 
-                InsetToDB(connection); // Insert employee data to DB
+                InsetToDB(connection, counter); // Insert employee data to DB
+                counter++;
+                InsetToDB(connection, counter); // Insert employee data to DB
+                counter++;
                 ReadDB(connection);    // Read employee data from DB
 
+            }
+        }
+
+        static void InsetToDB(SqliteConnection connection, int counter)
+        {
+            var Emp = TakeInput();
+
+            string mapId = GetValue(connection, Emp.Id);
+            if(mapId == "") 
+            {
+                mapId =  CreateValue(connection, Emp.Id, counter);
+            }
+
+
+            //Seed some data:
+            using (var transaction = connection.BeginTransaction())
+            {
+                var insertCmd = connection.CreateCommand();
+
+                insertCmd.CommandText = "INSERT INTO table1 VALUES('" + Emp.Name + "','" + mapId + "','" + Emp.phone + "','" + Emp.country + "')";
+                insertCmd.ExecuteNonQuery();
+
+                transaction.Commit();
             }
         }
 
@@ -59,36 +86,13 @@ namespace CompressApp2
             Console.WriteLine(emp.Name);
         }
 
-        static void InsetToDB(SqliteConnection connection)
-        {
-            var Emp = TakeInput();
-
-
-            PropertyInfo[] properties = typeof(Employee).GetProperties();
-            foreach (PropertyInfo property in properties)
-            {
-                property.SetValue(Emp, "ok");
-            }
-
-            //Seed some data:
-            using (var transaction = connection.BeginTransaction())
-            {
-                var insertCmd = connection.CreateCommand();
-
-                insertCmd.CommandText = "INSERT INTO table1 VALUES('" + Emp.Name + "','" + Emp.Id + "','" + Emp.phone + "','" + Emp.country + "')";
-                insertCmd.ExecuteNonQuery();
-
-                transaction.Commit();
-            }
-        }
-
         static void ReadDB(SqliteConnection connection)
         {
             var Employee = new Employee();
 
             //Read the newly inserted data:
             var selectCmd = connection.CreateCommand();
-            selectCmd.CommandText = "SELECT name FROM table1";
+            selectCmd.CommandText = "SELECT id FROM table1";
 
             using (var reader = selectCmd.ExecuteReader())
             {
@@ -102,16 +106,28 @@ namespace CompressApp2
             PrintEmployee(Employee);
         }
 
-        static string GetValue(SqliteConnection connection)
+        static string GetValue(SqliteConnection connection, string? key)
         {
             string value = "";
+            var selectCmd = connection.CreateCommand();
+            selectCmd.CommandText = "SELECT value FROM mapTable WHERE key = '" + key + "'";
+            using (var reader = selectCmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    value = reader.GetString(0);
+                }
+            }
             return value;
         }
 
-        static string CreateValue(SqliteConnection connection, string key)
+        static string CreateValue(SqliteConnection connection, string? key, int counter)
         {
-            string value = "";
-            return value;
+            var insertCmd = connection.CreateCommand();
+            insertCmd.CommandText = "INSERT INTO mapTable VALUES('" + key + "','" + counter.ToString() + "')";
+            insertCmd.ExecuteNonQuery();
+
+            return counter.ToString();
         }
 
         static string GetKeyFromValue(SqliteConnection connection, string value)
